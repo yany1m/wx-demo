@@ -1,0 +1,87 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: wx-demon
+  datasource:
+    url: jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;
+    driverClassName: org.h2.Driver
+    username: sa
+    password:
+    schema: classpath:db/schema-h2.sql
+    data: classpath:db/data-h2.sql
+    platform: h2
+  h2:
+    console:
+      path: /h2
+      enabled: true
+  shardingsphere:
+    # 是否开启
+    datasource:
+      # 数据源（逻辑名字）
+      names: test
+      # 配置数据源
+      test:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: org.h2.Driver
+        jdbc-url: jdbc:h2:mem:test
+        username: sa
+        password:
+    # 分片的配置
+    rules:
+      sharding:
+        # 表的分片策略
+        tables:
+          # 逻辑表的名称
+          mg_video:
+            # 数据节点配置，采用Groovy表达式
+            actual-data-nodes: test.mg_video$->{0..1}
+            # 配置策略
+            table-strategy:
+              # 用于单分片键的标准分片场景
+              standard:
+                sharding-column: pid
+                # 分片算法名字
+                sharding-algorithm-name: mg_video_inline
+            key-generate-strategy: # 主键生成策略
+              column: id  # 主键列
+              key-generator-name: snowflake  # 策略算法名称(推荐使用雪花算法)
+          mg_video_num:
+            # 数据节点配置，采用Groovy表达式
+            actual-data-nodes: test.mg_video_num$->{0..1}
+            # 配置策略
+            table-strategy:
+              # 用于单分片键的标准分片场景
+              standard:
+                sharding-column: pid
+                # 分片算法名字
+                sharding-algorithm-name: mg_video_num_inline
+            key-generate-strategy: # 主键生成策略
+              column: id  # 主键列
+              key-generator-name: snowflake  # 策略算法名称(推荐使用雪花算法)
+        key-generators:
+          snowflake:
+            type: SNOWFLAKE
+        sharding-algorithms:
+          mg_video_inline:
+            type: inline
+            props:
+              algorithm-expression: mg_video$->{pid % 3}
+          mg_video_num_inline:
+            type: inline
+            props:
+              algorithm-expression: mg_video_num$->{pid % 3}
+    props:
+      # 日志显示具体的SQL
+      sql-show: true
+
+mybatis-plus:
+  mapper-locations: classpath:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+
+
+logging:
+  config: classpath:log4j2-spring.xml
